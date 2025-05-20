@@ -25,7 +25,7 @@ import AddAdminForm from './components/AddAdminForm';
 import SetupSeatForm from './components/SetupSeatForm'; // Hoặc đúng đường dẫn của bạn
 import SeatPriceList from './components/SeatPriceList';
 import SeatPriceForm from './components/SeatPriceForm';
-import RevenueStatisticPage from "./components/RevenueStatisticPage"; // doanh thu
+
 
 function App() {
   return (
@@ -62,7 +62,6 @@ function App() {
               <Route path='/seatPrices' element={<SeatPriceList />} />
               <Route path='/seatPrices/add' element={<SeatPriceForm />} />
               <Route path='/seatPrices/edit/:id' element={<SeatPriceForm />} />
-              <Route path="/statistics/revenue" element={<RevenueStatisticPage />} />
             </Route>
           </Routes>
           <ToastContainer />

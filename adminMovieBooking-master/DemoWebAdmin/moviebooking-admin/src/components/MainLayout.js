@@ -190,11 +190,6 @@ const MainLayout = () => {
             <ListItemIcon><ShowtimeIcon sx={{ color: 'white' }} /></ListItemIcon>
             <ListItemText primary="Seat Price" />
           </ListItem>
-          <ListItem button onClick={() => handleMenuItemClick('/statistics/revenue')}>
-            <ListItemIcon><ShowtimeIcon sx={{ color: 'white' }} /></ListItemIcon>
-            <ListItemText primary="Doanh thu" />
-          </ListItem>
-
         </List>
 
         <Divider sx={{ borderColor: '#34495e' }} />
