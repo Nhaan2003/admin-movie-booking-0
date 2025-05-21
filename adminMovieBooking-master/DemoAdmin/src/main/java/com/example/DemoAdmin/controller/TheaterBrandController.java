@@ -8,6 +8,7 @@ import com.example.DemoAdmin.service.theaterbrand.TheaterBrandService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("api/admin/theaterbrands")
@@ -33,5 +34,11 @@ public class TheaterBrandController {
     public ResponseEntity<ApiResponse<TheaterBrandResponse>> deleteTheaterBrand(@PathVariable Integer theaterBrandId){
         theaterBrandService.deleteTheaterBrand(theaterBrandId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<TheaterBrandResponse>>> getAllTheaterBrands() {
+        List<TheaterBrandResponse> responses = theaterBrandService.getAllTheaterBrands();
+        return ResponseEntity.ok(new ApiResponse<>("Theater Brands retrieved successfully", responses));
     }
 }

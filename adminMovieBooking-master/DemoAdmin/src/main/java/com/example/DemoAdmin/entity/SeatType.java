@@ -1,4 +1,5 @@
 package com.example.DemoAdmin.entity;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,4 +20,9 @@ public class SeatType {
     @Column(name = "TypeName", length = 50, nullable = false)
     private String typeName;
 
+    @Column(name = "Price")
+    private int price;
+
+    @Column(name = "Enabled")
+    private boolean enabled;
 }

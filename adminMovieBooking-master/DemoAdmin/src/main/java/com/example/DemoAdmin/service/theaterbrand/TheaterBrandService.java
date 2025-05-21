@@ -9,6 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class TheaterBrandService implements ITheaterBrandService {
@@ -51,5 +54,13 @@ public class TheaterBrandService implements ITheaterBrandService {
         TheaterBrand theaterBrand = theaterBrandReposiroty.findById(id)
                 .orElseThrow(()-> new RuntimeException("Theater Brand not exist"));
         return theaterBrandMapper.toTheaterBrandResponse(theaterBrand);
+    }
+
+    @Override
+    public List<TheaterBrandResponse> getAllTheaterBrands() {
+        List<TheaterBrand> theaterBrands = theaterBrandReposiroty.findAll();
+        return theaterBrands.stream()
+                .map(theaterBrandMapper::toTheaterBrandResponse)
+                .collect(Collectors.toList());
     }
 }
