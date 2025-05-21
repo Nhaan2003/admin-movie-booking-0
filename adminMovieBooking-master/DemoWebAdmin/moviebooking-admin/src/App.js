@@ -19,13 +19,15 @@ import ScreenForm from './components/ScreenForm';
 import UserList from './components/UserList';
 import UserForm from './components/UserForm';
 import AddUserForm from './components/AddUserForm';
-import AdminList from './components/AdminList'; 
+import AdminList from './components/AdminList';
 import AdminForm from './components/AdminForm'; // Hoặc đúng đường dẫn của bạn
-import AddAdminForm from './components/AddAdminForm'; 
+import AddAdminForm from './components/AddAdminForm';
 import SetupSeatForm from './components/SetupSeatForm'; // Hoặc đúng đường dẫn của bạn
 import SeatPriceList from './components/SeatPriceList';
 import SeatPriceForm from './components/SeatPriceForm';
 
+// Import thêm các component quản lý doanh thu
+import RevenueManagement from './components/RevenueManagement';
 
 function App() {
   return (
@@ -62,6 +64,9 @@ function App() {
               <Route path='/seatPrices' element={<SeatPriceList />} />
               <Route path='/seatPrices/add' element={<SeatPriceForm />} />
               <Route path='/seatPrices/edit/:id' element={<SeatPriceForm />} />
+              
+              {/* Thêm routes cho quản lý doanh thu */}
+              <Route path='/revenue' element={<RevenueManagement />} />
             </Route>
           </Routes>
           <ToastContainer />

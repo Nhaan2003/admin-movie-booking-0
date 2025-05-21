@@ -23,7 +23,10 @@ import {
   Event as ShowtimeIcon,
   Logout as LogoutIcon,
   Menu as MenuIcon,
-  Notifications as NotificationsIcon
+  Notifications as NotificationsIcon,
+  BarChart as BarChartIcon, // Thêm icon biểu đồ cho doanh thu
+  CurrencyExchange as CurrencyIcon, // Thêm icon tiền tệ (thay thế nếu thích hợp)
+  Analytics as AnalyticsIcon // Một lựa chọn icon khác cho phân tích
 } from '@mui/icons-material';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
@@ -49,7 +52,6 @@ const MainLayout = () => {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [username, setUsername] = useState('');
   const [openAccountMenu, setOpenAccountMenu] = useState(false);
-
 
 
   const toggleDrawer = () => {
@@ -189,6 +191,11 @@ const MainLayout = () => {
           <ListItem button onClick={() => handleMenuItemClick('/seatPrices')}>
             <ListItemIcon><ShowtimeIcon sx={{ color: 'white' }} /></ListItemIcon>
             <ListItemText primary="Seat Price" />
+          </ListItem>
+          {/* Cập nhật icon cho mục Doanh thu */}
+          <ListItem button onClick={() => handleMenuItemClick('/revenue')}>
+            <ListItemIcon><BarChartIcon sx={{ color: 'white' }} /></ListItemIcon>
+            <ListItemText primary="Doanh thu" />
           </ListItem>
         </List>
 
