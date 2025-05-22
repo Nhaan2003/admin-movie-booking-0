@@ -7,17 +7,12 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@IdClass(BookingSeatId.class)
 @Table(name = "BookingSeat")
 public class BookingSeat {
+   @EmbeddedId
+   private BookingSeatId id;
 
-   @Id
-   @ManyToOne
-   @JoinColumn(name = "BookingId")
-   private Booking booking;
-
-   @Id
-   @ManyToOne
-   @JoinColumn(name = "SeatId")
-   private Seat seat;
+   @Column(name = "Price")
+   private Double price;
 }
+
