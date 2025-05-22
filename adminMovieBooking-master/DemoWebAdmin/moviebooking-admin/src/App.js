@@ -27,7 +27,7 @@ import SeatPriceList from './components/SeatPriceList';
 import SeatPriceForm from './components/SeatPriceForm';
 
 // Import thêm các component quản lý doanh thu
-import RevenueManagement from './components/RevenueManagement';
+import RevenueForm from './components/RevenueForm';
 
 function App() {
   return (
@@ -66,7 +66,7 @@ function App() {
               <Route path='/seatPrices/edit/:id' element={<SeatPriceForm />} />
               
               {/* Thêm routes cho quản lý doanh thu */}
-              <Route path='/revenue' element={<RevenueManagement />} />
+              <Route path='/revenue' element={<RevenueForm />} />
             </Route>
           </Routes>
           <ToastContainer />

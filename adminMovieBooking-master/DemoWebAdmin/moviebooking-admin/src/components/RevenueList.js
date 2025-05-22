@@ -1,63 +1,82 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Paper, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Typography, Box
+  Box, Typography, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, TextField, Paper
 } from '@mui/material';
+import { Search } from '@mui/icons-material';
 
-const RevenueList = ({ data, filterType }) => {
-  if (!data || !data.details || data.details.length === 0) {
-    return (
-      <Box sx={{ my: 2 }}>
-        <Typography variant="body1">Không có dữ liệu doanh thu phù hợp với điều kiện tìm kiếm.</Typography>
-      </Box>
+const RevenueList = ({ data }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filtered, setFiltered] = useState([]);
+
+  useEffect(() => {
+    if (!data?.details) return;
+    const term = searchTerm.toLowerCase();
+    const result = data.details.filter(item =>
+      typeof item.label === 'string' && item.label.toLowerCase().includes(term)
     );
-  }
+    setFiltered(result);
+  }, [searchTerm, data]);
 
-  const getColumnLabel = () => {
-    switch (filterType) {
-      case 'date': return 'Ngày';
-      case 'theater': return 'Rạp';
-      case 'theaterBrand': return 'Chuỗi rạp';
-      case 'movie': return 'Phim';
-      case 'genre': return 'Thể loại phim';
-      case 'seatType': return 'Loại ghế';
-      default: return 'Danh mục';
-    }
-  };
+  const formatMoney = (amount) =>
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+
+  const totalFiltered = filtered.reduce((sum, item) => sum + item.amount, 0);
 
   return (
-    <Box sx={{ my: 4 }}>
-      <Typography variant="h6" gutterBottom>Báo cáo doanh thu {getColumnLabel().toLowerCase()}</Typography>
-      
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }} aria-label="revenue table">
-          <TableHead>
-            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableCell><strong>{getColumnLabel()}</strong></TableCell>
-              <TableCell align="right"><strong>Doanh thu (VND)</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.details.map((row, index) => (
-              <TableRow key={index} sx={{ '&:nth-of-type(odd)': { backgroundColor: '#fafafa' } }}>
-                <TableCell component="th" scope="row">
-                  {row.label}
-                </TableCell>
-                <TableCell align="right">
-                  {new Intl.NumberFormat('vi-VN').format(row.amount)}
-                </TableCell>
-              </TableRow>
-            ))}
-            <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
-              <TableCell><strong>Tổng doanh thu</strong></TableCell>
-              <TableCell align="right">
-                <strong>{new Intl.NumberFormat('vi-VN').format(data.totalRevenue)}</strong>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+    <Paper sx={{ p: 2, height: 500, overflow: 'auto', display: 'flex', flexDirection: 'column', width: '100%' }}>
+      {/* Tìm kiếm */}
+      <TextField
+        placeholder="Tìm kiếm theo tên..."
+        variant="outlined"
+        size="small"
+        fullWidth
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        sx={{ mb: 2 }}
+        InputProps={{
+          startAdornment: <Search sx={{ mr: 1, color: 'gray' }} />
+        }}
+      />
+
+      {/* Bảng dữ liệu */}
+      <Box sx={{ flexGrow: 1 }}>
+        {filtered.length === 0 ? (
+          <Typography align="center">Không có dữ liệu phù hợp.</Typography>
+        ) : (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Tên</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>Doanh thu (VND)</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filtered.map((item, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{item.label}</TableCell>
+                    <TableCell align="right">{formatMoney(item.amount)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Box>
+
+      {/* Tổng doanh thu sau lọc */}
+      {filtered.length > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="subtitle2" fontWeight="bold">
+            Tổng doanh thu tìm kiếm:
+          </Typography>
+          <Typography variant="body1" color="primary">
+            {formatMoney(totalFiltered)}
+          </Typography>
+        </Box>
+      )}
+    </Paper>
   );
 };
 
