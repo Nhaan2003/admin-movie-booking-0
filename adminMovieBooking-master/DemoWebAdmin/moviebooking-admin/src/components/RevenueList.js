@@ -1,3 +1,4 @@
+// RevenueList.js
 import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, Table, TableBody, TableCell,
@@ -23,9 +24,13 @@ const RevenueList = ({ data }) => {
 
   const totalFiltered = filtered.reduce((sum, item) => sum + item.amount, 0);
 
+  const parseLabel = (label) => {
+    const [movie, theater] = label.split(' - ');
+    return { movie, theater };
+  };
+
   return (
     <Paper sx={{ p: 2, height: 500, overflow: 'auto', display: 'flex', flexDirection: 'column', width: '100%' }}>
-      {/* Tìm kiếm */}
       <TextField
         placeholder="Tìm kiếm theo tên..."
         variant="outlined"
@@ -39,7 +44,6 @@ const RevenueList = ({ data }) => {
         }}
       />
 
-      {/* Bảng dữ liệu */}
       <Box sx={{ flexGrow: 1 }}>
         {filtered.length === 0 ? (
           <Typography align="center">Không có dữ liệu phù hợp.</Typography>
@@ -48,32 +52,32 @@ const RevenueList = ({ data }) => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Tên</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Phim</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Rạp</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 'bold' }}>Doanh thu (VND)</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filtered.map((item, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>{item.label}</TableCell>
-                    <TableCell align="right">{formatMoney(item.amount)}</TableCell>
-                  </TableRow>
-                ))}
+                {filtered.map((item, idx) => {
+                  const { movie, theater } = parseLabel(item.label);
+                  return (
+                    <TableRow key={idx}>
+                      <TableCell>{movie}</TableCell>
+                      <TableCell>{theater}</TableCell>
+                      <TableCell align="right">{formatMoney(item.amount)}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
         )}
       </Box>
 
-      {/* Tổng doanh thu sau lọc */}
       {filtered.length > 0 && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="subtitle2" fontWeight="bold">
-            Tổng doanh thu tìm kiếm:
-          </Typography>
-          <Typography variant="body1" color="primary">
-            {formatMoney(totalFiltered)}
-          </Typography>
+        <Box sx={{ mt: 2, textAlign: 'right' }}>
+          <Typography variant="subtitle2" fontWeight="bold">Tổng doanh thu tìm kiếm:</Typography>
+          <Typography variant="body1" color="primary">{formatMoney(totalFiltered)}</Typography>
         </Box>
       )}
     </Paper>

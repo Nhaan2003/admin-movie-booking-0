@@ -8,8 +8,5 @@ public class RevenueFilterRequest {
     private LocalDate startDate;
     private LocalDate endDate;
     private Integer theaterId;
-    private Integer theaterBrandId;
     private Integer movieId;
-    private Integer genreId;
-    private Integer seatTypeId;
 }

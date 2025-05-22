@@ -14,39 +14,8 @@ public class RevenueController {
     @Autowired
     private IRevenueService revenueService;
 
-    @PostMapping("/by-date")
-    public ResponseEntity<RevenueResponse> getRevenueByDate(@RequestBody RevenueFilterRequest request) {
-        RevenueResponse response = revenueService.getRevenueByDate(request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/by-theater")
-    public ResponseEntity<RevenueResponse> getRevenueByTheater(@RequestBody RevenueFilterRequest request) {
-        RevenueResponse response = revenueService.getRevenueByTheater(request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/by-theater-brand")
-    public ResponseEntity<RevenueResponse> getRevenueByTheaterBrand(@RequestBody RevenueFilterRequest request) {
-        RevenueResponse response = revenueService.getRevenueByTheaterBrand(request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/by-movie")
-    public ResponseEntity<RevenueResponse> getRevenueByMovie(@RequestBody RevenueFilterRequest request) {
-        RevenueResponse response = revenueService.getRevenueByMovie(request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/by-genre")
-    public ResponseEntity<RevenueResponse> getRevenueByGenre(@RequestBody RevenueFilterRequest request) {
-        RevenueResponse response = revenueService.getRevenueByGenre(request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/by-seat-type")
-    public ResponseEntity<RevenueResponse> getRevenueBySeatType(@RequestBody RevenueFilterRequest request) {
-        RevenueResponse response = revenueService.getRevenueBySeatType(request);
-        return ResponseEntity.ok(response);
+    @PostMapping("/by-all")
+    public ResponseEntity<RevenueResponse> getRevenueByAll(@RequestBody RevenueFilterRequest request) {
+        return ResponseEntity.ok(revenueService.getRevenueByAll(request));
     }
 }

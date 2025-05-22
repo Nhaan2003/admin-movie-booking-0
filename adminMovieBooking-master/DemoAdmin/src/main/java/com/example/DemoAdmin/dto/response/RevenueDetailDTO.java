@@ -1,10 +1,13 @@
 package com.example.DemoAdmin.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import java.math.BigDecimal;
+import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class RevenueDetailDTO {
-    private String label; // Ngày, tên rạp, tên phim hoặc loại ghế
-    private BigDecimal amount;
+    private String label;
+    private long amount;
 }
