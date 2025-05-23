@@ -3,30 +3,144 @@ import {
   Container, Typography, Paper, Box, CircularProgress, Grid,
   TextField, Button, MenuItem, Card, CardContent, Divider,
   IconButton, Tooltip, Fade, useTheme, Chip, Stack,
-  Select, FormControl, InputLabel, OutlinedInput
+  List, ListItem, ListItemText, ListItemIcon, Menu,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { vi } from 'date-fns/locale';
 import { toast } from 'react-toastify';
-import RevenueList from './RevenueList';
 import { Bar } from 'react-chartjs-2';
+import axios from 'axios';
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement,
   Title, Tooltip as ChartTooltip, Legend
 } from 'chart.js';
-import { 
-  FilterAlt, Refresh, TrendingUp, 
+import {
+  FilterAlt, Refresh, TrendingUp,
   LocalMovies, TheaterComedy, DateRange,
-  KeyboardArrowDown, Search
+  KeyboardArrowDown, Search, Close, FormatListBulleted,
+  PieChart, BarChart, ShowChart, MovieFilter
 } from '@mui/icons-material';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Legend);
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 
+// Component RevenueList tích hợp sẵn
+const RevenueList = ({ data }) => {
+  const theme = useTheme();
+
+  if (!data || !data.details || !data.details.length) {
+    return (
+      <Paper
+        elevation={3}
+        sx={{
+          p: 2,
+          borderRadius: 2,
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Typography color="text.secondary">
+          Không có dữ liệu doanh thu để hiển thị
+        </Typography>
+      </Paper>
+    );
+  }
+
+  const formatMoney = (amount) =>
+    new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0
+    }).format(amount);
+
+  const parseLabel = (label) => {
+    const parts = label.split(' - ');
+    return {
+      movie: parts[0] || '',
+      theater: parts[1] || ''
+    };
+  };
+
+  return (
+    <Paper
+      elevation={3}
+      sx={{
+        p: 2,
+        borderRadius: 2,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}
+    >
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 500 }}>
+          <FormatListBulleted sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Chi tiết doanh thu
+        </Typography>
+        <Box>
+          <Chip
+            label={`Tổng cộng: ${formatMoney(data.totalRevenue)}`}
+            color="primary"
+            variant="outlined"
+          />
+        </Box>
+      </Box>
+
+      <Divider sx={{ mb: 2 }} />
+
+      <TableContainer sx={{ flexGrow: 1, overflow: 'auto' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>STT</TableCell>
+              <TableCell>Phim</TableCell>
+              <TableCell>Rạp</TableCell>
+              <TableCell align="right">Doanh thu</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {data.details.map((item, index) => {
+              const { movie, theater } = parseLabel(item.label);
+              return (
+                <TableRow
+                  key={index}
+                  hover
+                  sx={{
+                    '&:nth-of-type(odd)': {
+                      backgroundColor: theme.palette.action.hover,
+                    },
+                  }}
+                >
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{movie}</TableCell>
+                  <TableCell>{theater}</TableCell>
+                  <TableCell align="right">
+                    <Typography
+                      fontWeight={500}
+                      color={theme.palette.success.dark}
+                    >
+                      {formatMoney(item.amount)}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Paper>
+  );
+};
+
+// Component RevenueForm chính
 const RevenueForm = () => {
   const theme = useTheme();
   const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 30)));
@@ -36,43 +150,53 @@ const RevenueForm = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [filterApplied, setFilterApplied] = useState(false);
-  const [movieSearchTerm, setMovieSearchTerm] = useState('');
-  const [movieDropdownOpen, setMovieDropdownOpen] = useState(false);
 
   const [theaters, setTheaters] = useState([]);
   const [movies, setMovies] = useState([]);
 
-  useEffect(() => {
-    const fetchDropdowns = async () => {
-      try {
-        setLoading(true);
-        const [theaterRes, movieRes] = await Promise.all([
-          fetch(`${API_URL}/admin/theaters`).then(res => res.json()),
-          fetch(`${API_URL}/movie/all`).then(res => res.json()),
-        ]);
-        
-        const theaterData = Array.isArray(theaterRes) ? theaterRes : theaterRes?.data || [];
-        const movieData = Array.isArray(movieRes) ? movieRes : movieRes?.data || [];
-        
-        setTheaters(theaterData);
-        setMovies(movieData);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        toast.error('Lỗi khi tải danh sách rạp/phim');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDropdowns();
-  }, []);
+  // Menu state
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [movieAnchorEl, setMovieAnchorEl] = useState(null);
+  
+  const open = Boolean(anchorEl);
+  const movieMenuOpen = Boolean(movieAnchorEl);
 
   useEffect(() => {
-    // Load data automatically on initial render
-    if (!filterApplied && theaters.length > 0 && movies.length > 0) {
-      fetchRevenue();
-      setFilterApplied(true);
-    }
-  }, [theaters, movies]);
+    const fetchTheaters = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/admin/theaters`);
+        const theaterData = Array.isArray(response.data) 
+          ? response.data 
+          : response.data?.data || [];
+        setTheaters(theaterData);
+      } catch (err) {
+        console.error('Error fetching theaters:', err);
+        toast.error('Lỗi khi tải danh sách rạp');
+      }
+    };
+
+    const fetchMovies = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/admin/movies`);
+        const movieData = response.data?.data || [];
+        setMovies(movieData);
+      } catch (err) {
+        console.error('Error fetching movies:', err);
+        toast.error('Lỗi khi tải danh sách phim');
+      }
+    };
+
+    fetchTheaters();
+    fetchMovies();
+    
+    // Tự động tải dữ liệu khi component được mount
+    setTimeout(() => {
+      if (!filterApplied) {
+        fetchRevenue();
+        setFilterApplied(true);
+      }
+    }, 500);
+  }, []);
 
   const fetchRevenue = async () => {
     setLoading(true);
@@ -84,13 +208,8 @@ const RevenueForm = () => {
     };
 
     try {
-      const res = await fetch(`${API_URL}/revenue/by-all`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(filter)
-      });
-      const json = await res.json();
-      setData(json);
+      const res = await axios.post(`${API_URL}/revenue/by-all`, filter);
+      setData(res.data);
       toast.success('Tải dữ liệu doanh thu thành công');
     } catch (err) {
       toast.error('Lỗi khi tải dữ liệu doanh thu');
@@ -249,7 +368,7 @@ const RevenueForm = () => {
       {
         title: 'Tổng doanh thu',
         value: formatMoney(data.totalRevenue),
-        icon: <TrendingUp />,
+        icon: <ShowChart />,
         color: '#4caf50'
       },
       {
@@ -294,7 +413,7 @@ const RevenueForm = () => {
 
   const getFilterDescription = () => {
     const theaterName = theaterId ? theaters.find(t => t.id == theaterId)?.name || '' : 'Tất cả rạp';
-    const movieTitle = movieId ? movies.find(m => (m.movieId || m.id) == movieId)?.title || '' : 'Tất cả phim';
+    const movieTitle = movieId ? movies.find(m => (m.movieId || m.id) == movieId)?.title || 'Đã chọn phim' : 'Tất cả phim';
 
     return (
       <Box sx={{ mt: 1, mb: 2 }}>
@@ -322,146 +441,7 @@ const RevenueForm = () => {
     );
   };
 
-  // Lọc phim theo từ khóa tìm kiếm
-  const filteredMovies = movies.filter(movie => {
-    if (!movieSearchTerm) return true;
-    const title = movie.title || '';
-    return title.toLowerCase().includes(movieSearchTerm.toLowerCase());
-  });
-  
-  // Xử lý khi người dùng chọn phim từ dropdown
-  const handleMovieSelect = (id) => {
-    setMovieId(id);
-    setMovieDropdownOpen(false);
-  };
-
   const chartData = generateChartData();
-
-  // Custom style cho dropdown phim
-  const CustomMovieDropdown = () => {
-    const selectedMovie = movieId 
-      ? movies.find(m => (m.movieId || m.id) == movieId)?.title 
-      : 'Tất cả phim';
-    
-    return (
-      <Box 
-        sx={{
-          position: 'relative',
-          width: '100%',
-          zIndex: movieDropdownOpen ? 10 : 1
-        }}
-      >
-        <Box 
-          onClick={() => setMovieDropdownOpen(!movieDropdownOpen)}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: '4px',
-            padding: '8px 12px',
-            cursor: 'pointer',
-            backgroundColor: theme.palette.background.paper,
-            '&:hover': {
-              borderColor: theme.palette.action.active
-            }
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <LocalMovies color="action" sx={{ mr: 1 }} />
-            <Typography 
-              variant="body1" 
-              noWrap
-              sx={{ 
-                maxWidth: '200px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-            >
-              {selectedMovie}
-            </Typography>
-          </Box>
-          <KeyboardArrowDown 
-            sx={{ 
-              transform: movieDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.3s'
-            }} 
-          />
-        </Box>
-        
-        {movieDropdownOpen && (
-          <Paper 
-            sx={{ 
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              mt: 0.5,
-              maxHeight: '300px',
-              overflow: 'auto',
-              boxShadow: 3,
-              zIndex: 100
-            }}
-          >
-            <Box sx={{ p: 1, borderBottom: `1px solid ${theme.palette.divider}` }}>
-              <TextField
-                placeholder="Tìm kiếm phim..."
-                size="small"
-                fullWidth
-                value={movieSearchTerm}
-                onChange={(e) => setMovieSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: <Search fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-              />
-            </Box>
-            
-            <Box onClick={() => handleMovieSelect('')} sx={{ p: 1.5, borderBottom: `1px solid ${theme.palette.divider}` }}>
-              <Typography 
-                sx={{ 
-                  cursor: 'pointer',
-                  fontWeight: movieId === '' ? 'bold' : 'normal',
-                  '&:hover': { backgroundColor: theme.palette.action.hover },
-                  p: 1,
-                  borderRadius: 1
-                }}
-              >
-                Tất cả phim
-              </Typography>
-            </Box>
-            
-            {filteredMovies.map((movie) => (
-              <Box 
-                key={movie.movieId || movie.id}
-                onClick={() => handleMovieSelect(movie.movieId || movie.id)}
-                sx={{ 
-                  p: 1,
-                  cursor: 'pointer',
-                  '&:hover': { backgroundColor: theme.palette.action.hover }
-                }}
-              >
-                <Typography 
-                  sx={{ 
-                    p: 1,
-                    borderRadius: 1,
-                    fontWeight: movieId == (movie.movieId || movie.id) ? 'bold' : 'normal',
-                  }}
-                >
-                  {movie.title}
-                </Typography>
-              </Box>
-            ))}
-            
-            {filteredMovies.length === 0 && (
-              <Box sx={{ p: 2, textAlign: 'center' }}>
-                <Typography color="text.secondary">Không tìm thấy phim nào</Typography>
-              </Box>
-            )}
-          </Paper>
-        )}
-      </Box>
-    );
-  };
 
   return (
     <Container maxWidth="xl" sx={{ mt: 3, mb: 5 }}>
@@ -517,24 +497,109 @@ const RevenueForm = () => {
                 sx={{ width: '100%' }}
               />
             </Grid>
+            
+            {/* Dropdown chọn rạp */}
             <Grid item xs={12} md={2.5}>
-              <TextField
-                select
-                label="Rạp chiếu phim"
+              <Button
+                variant="outlined"
+                onClick={(e) => setAnchorEl(e.currentTarget)}
                 fullWidth
-                value={theaterId}
-                onChange={(e) => setTheaterId(e.target.value)}
+                startIcon={<TheaterComedy />}
+                endIcon={<KeyboardArrowDown />}
+                sx={{
+                  minWidth: 200,
+                  justifyContent: 'space-between',
+                  textTransform: 'none',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  height: '38px',
+                  backgroundColor: 'white'
+                }}
               >
-                <MenuItem value="">Tất cả rạp</MenuItem>
+                {theaterId
+                  ? theaters.find(t => t.id == theaterId)?.name || 'Chọn rạp'
+                  : 'Tất cả rạp'}
+              </Button>
+              <Menu 
+                anchorEl={anchorEl} 
+                open={open} 
+                onClose={() => setAnchorEl(null)}
+                PaperProps={{
+                  style: {
+                    maxHeight: 300,
+                    width: 250,
+                  },
+                }}
+              >
+                <MenuItem onClick={() => { setTheaterId(''); setAnchorEl(null); }}>
+                  <ListItemIcon><TheaterComedy fontSize="small" /></ListItemIcon>
+                  <ListItemText>Tất cả rạp</ListItemText>
+                </MenuItem>
+                <Divider />
                 {theaters.map(theater => (
-                  <MenuItem key={theater.id} value={theater.id}>{theater.name}</MenuItem>
+                  <MenuItem key={theater.id} onClick={() => {
+                    setTheaterId(theater.id.toString());
+                    setAnchorEl(null);
+                  }}>
+                    <ListItemIcon><TheaterComedy fontSize="small" /></ListItemIcon>
+                    <ListItemText>{theater.name}</ListItemText>
+                  </MenuItem>
                 ))}
-              </TextField>
+              </Menu>
             </Grid>
+
+            {/* Dropdown chọn phim */}
             <Grid item xs={12} md={2.5}>
-              {/* Custom movie dropdown để phù hợp với hình ảnh đã cung cấp */}
-              <CustomMovieDropdown />
+              <Button
+                variant="outlined"
+                onClick={(e) => setMovieAnchorEl(e.currentTarget)}
+                fullWidth
+                startIcon={<MovieFilter />}
+                endIcon={<KeyboardArrowDown />}
+                sx={{
+                  minWidth: 200,
+                  justifyContent: 'space-between',
+                  textTransform: 'none',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  height: '38px',
+                  backgroundColor: 'white'
+                }}
+              >
+                {movieId
+                  ? movies.find(m => (m.movieId || m.id).toString() === movieId)?.title || 'Chọn phim'
+                  : 'Tất cả phim'}
+              </Button>
+              <Menu 
+                anchorEl={movieAnchorEl} 
+                open={movieMenuOpen} 
+                onClose={() => setMovieAnchorEl(null)}
+                PaperProps={{
+                  style: {
+                    maxHeight: 300,
+                    width: 250,
+                  },
+                }}
+              >
+                <MenuItem onClick={() => { setMovieId(''); setMovieAnchorEl(null); }}>
+                  <ListItemIcon><MovieFilter fontSize="small" /></ListItemIcon>
+                  <ListItemText>Tất cả phim</ListItemText>
+                </MenuItem>
+                <Divider />
+                {movies.map(movie => (
+                  <MenuItem key={movie.movieId || movie.id} onClick={() => {
+                    setMovieId((movie.movieId || movie.id).toString());
+                    setMovieAnchorEl(null);
+                  }}>
+                    <ListItemIcon><MovieFilter fontSize="small" /></ListItemIcon>
+                    <ListItemText>{movie.title}</ListItemText>
+                  </MenuItem>
+                ))}
+              </Menu>
             </Grid>
+            
             <Grid item xs={12} md={2}>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button 
@@ -645,7 +710,10 @@ const RevenueForm = () => {
                 overflow: 'hidden'
               }}
             >
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>Biểu đồ phân tích doanh thu</Typography>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
+                <BarChart sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Biểu đồ phân tích doanh thu
+              </Typography>
               <Divider sx={{ mb: 2 }} />
               <Box sx={{ flexGrow: 1, position: 'relative' }}>
                 {chartData ? (
@@ -659,6 +727,7 @@ const RevenueForm = () => {
             </Paper>
             
             <Box sx={{ flex: 1, minWidth: 400 }}>
+              {/* Sử dụng component RevenueList tích hợp */}
               <RevenueList data={data} />
             </Box>
           </Box>
