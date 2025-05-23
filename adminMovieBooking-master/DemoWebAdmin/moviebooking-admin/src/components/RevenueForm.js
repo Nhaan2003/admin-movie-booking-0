@@ -4,7 +4,8 @@ import {
   TextField, Button, MenuItem, Card, CardContent, Divider,
   IconButton, Tooltip, Fade, useTheme, Chip, Stack,
   List, ListItem, ListItemText, ListItemIcon, Menu,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  InputAdornment
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -13,6 +14,7 @@ import { vi } from 'date-fns/locale';
 import { toast } from 'react-toastify';
 import { Bar } from 'react-chartjs-2';
 import axios from 'axios';
+import { differenceInDays, parseISO } from 'date-fns';
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement,
@@ -22,16 +24,19 @@ import {
   FilterAlt, Refresh, TrendingUp,
   LocalMovies, TheaterComedy, DateRange,
   KeyboardArrowDown, Search, Close, FormatListBulleted,
-  PieChart, BarChart, ShowChart, MovieFilter
+  PieChart, BarChart, ShowChart, MovieFilter, ArrowUpward, 
+  ArrowDownward
 } from '@mui/icons-material';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Legend);
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 
-// Component RevenueList tích hợp sẵn
+// Component RevenueList tích hợp sẵn với tìm kiếm và sắp xếp
 const RevenueList = ({ data }) => {
   const theme = useTheme();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   if (!data || !data.details || !data.details.length) {
     return (
@@ -68,6 +73,52 @@ const RevenueList = ({ data }) => {
     };
   };
 
+  // Hàm sắp xếp
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Lọc và sắp xếp dữ liệu
+  const filteredItems = data.details
+    .map((item, index) => {
+      const { movie, theater } = parseLabel(item.label);
+      return {
+        id: index,
+        movie,
+        theater,
+        amount: item.amount
+      };
+    })
+    .filter(item => {
+      if (!searchTerm) return true;
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        item.movie.toLowerCase().includes(searchLower) ||
+        item.theater.toLowerCase().includes(searchLower) ||
+        formatMoney(item.amount).toLowerCase().includes(searchLower)
+      );
+    });
+
+  // Sắp xếp dữ liệu
+  if (sortConfig.key) {
+    filteredItems.sort((a, b) => {
+      if (a[sortConfig.key] < b[sortConfig.key]) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (a[sortConfig.key] > b[sortConfig.key]) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }
+
+  // Tính tổng doanh thu của các item được lọc
+  const filteredTotal = filteredItems.reduce((sum, item) => sum + item.amount, 0);
+
   return (
     <Paper
       elevation={3}
@@ -94,6 +145,29 @@ const RevenueList = ({ data }) => {
         </Box>
       </Box>
 
+      <TextField
+        size="small"
+        placeholder="Tìm kiếm theo tên phim, rạp..."
+        fullWidth
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        sx={{ mb: 2 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search fontSize="small" />
+            </InputAdornment>
+          ),
+          endAdornment: searchTerm && (
+            <InputAdornment position="end">
+              <IconButton size="small" onClick={() => setSearchTerm('')}>
+                <Close fontSize="small" />
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
+      />
+
       <Divider sx={{ mb: 2 }} />
 
       <TableContainer sx={{ flexGrow: 1, overflow: 'auto' }}>
@@ -101,41 +175,65 @@ const RevenueList = ({ data }) => {
           <TableHead>
             <TableRow>
               <TableCell>STT</TableCell>
-              <TableCell>Phim</TableCell>
-              <TableCell>Rạp</TableCell>
-              <TableCell align="right">Doanh thu</TableCell>
+              <TableCell onClick={() => requestSort('movie')} style={{ cursor: 'pointer' }}>
+                Phim {sortConfig.key === 'movie' && (
+                  sortConfig.direction === 'asc' ? <ArrowUpward fontSize="small" /> : <ArrowDownward fontSize="small" />
+                )}
+              </TableCell>
+              <TableCell onClick={() => requestSort('theater')} style={{ cursor: 'pointer' }}>
+                Rạp {sortConfig.key === 'theater' && (
+                  sortConfig.direction === 'asc' ? <ArrowUpward fontSize="small" /> : <ArrowDownward fontSize="small" />
+                )}
+              </TableCell>
+              <TableCell align="right" onClick={() => requestSort('amount')} style={{ cursor: 'pointer' }}>
+                Doanh thu {sortConfig.key === 'amount' && (
+                  sortConfig.direction === 'asc' ? <ArrowUpward fontSize="small" /> : <ArrowDownward fontSize="small" />
+                )}
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {data.details.map((item, index) => {
-              const { movie, theater } = parseLabel(item.label);
-              return (
-                <TableRow
-                  key={index}
-                  hover
-                  sx={{
-                    '&:nth-of-type(odd)': {
-                      backgroundColor: theme.palette.action.hover,
-                    },
-                  }}
-                >
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{movie}</TableCell>
-                  <TableCell>{theater}</TableCell>
-                  <TableCell align="right">
-                    <Typography
-                      fontWeight={500}
-                      color={theme.palette.success.dark}
-                    >
-                      {formatMoney(item.amount)}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {filteredItems.map((item, index) => (
+              <TableRow
+                key={item.id}
+                hover
+                sx={{
+                  '&:nth-of-type(odd)': {
+                    backgroundColor: theme.palette.action.hover,
+                  },
+                }}
+              >
+                <TableCell>{index + 1}</TableCell>
+                <TableCell>{item.movie}</TableCell>
+                <TableCell>{item.theater}</TableCell>
+                <TableCell align="right">
+                  <Typography
+                    fontWeight={500}
+                    color={theme.palette.success.dark}
+                  >
+                    {formatMoney(item.amount)}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ))}
+            {filteredItems.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} align="center">
+                  Không tìm thấy kết quả phù hợp
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </TableContainer>
+      
+      {searchTerm && filteredItems.length > 0 && (
+        <Box sx={{ mt: 2, textAlign: 'right' }}>
+          <Typography variant="body2">
+            Tổng doanh thu đã lọc: <strong>{formatMoney(filteredTotal)}</strong>
+          </Typography>
+        </Box>
+      )}
     </Paper>
   );
 };
@@ -340,6 +438,12 @@ const RevenueForm = () => {
       maximumFractionDigits: 0
     }).format(amount);
 
+  // Tính khoảng thời gian chính xác
+  const calculateDateRange = () => {
+    // +1 vì chênh lệch ngày là inclusive (tính cả ngày đầu và ngày cuối)
+    return differenceInDays(endDate, startDate) + 1;
+  };
+
   // Calculate quick stats
   const getQuickStats = () => {
     if (!data?.details?.length) return [];
@@ -364,6 +468,9 @@ const RevenueForm = () => {
     const topTheater = Object.entries(theaterRevenues)
       .sort((a, b) => b[1] - a[1])[0];
 
+    // Tính số ngày chính xác
+    const dateRangeCount = calculateDateRange();
+
     return [
       {
         title: 'Tổng doanh thu',
@@ -387,7 +494,7 @@ const RevenueForm = () => {
       },
       {
         title: 'Khoảng thời gian',
-        value: `${data.details.length} ngày`,
+        value: `${dateRangeCount} ngày`,
         subtitle: `${formatDate(startDate)} - ${formatDate(endDate)}`,
         icon: <DateRange />,
         color: '#9c27b0'
@@ -727,7 +834,7 @@ const RevenueForm = () => {
             </Paper>
             
             <Box sx={{ flex: 1, minWidth: 400 }}>
-              {/* Sử dụng component RevenueList tích hợp */}
+              {/* Sử dụng component RevenueList cải tiến với tìm kiếm và sắp xếp */}
               <RevenueList data={data} />
             </Box>
           </Box>
